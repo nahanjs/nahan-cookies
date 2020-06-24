@@ -2,6 +2,14 @@
 
 Cookies middleware for nahan
 
+[![Build Status][travis-ci-image]][travis-ci-url]
+[![Coverage Status][coveralls-image]][coveralls-url]
+
+[travis-ci-image]: https://travis-ci.org/LabMemNo003/nahan-cookies.svg?branch=master
+[travis-ci-url]: https://travis-ci.org/LabMemNo003/nahan-cookies
+[coveralls-image]: https://coveralls.io/repos/github/LabMemNo003/nahan-cookies/badge.svg?branch=master
+[coveralls-url]: https://coveralls.io/github/LabMemNo003/nahan-cookies?branch=master
+
 ## Reference
 
 https://tools.ietf.org/html/rfc6265
