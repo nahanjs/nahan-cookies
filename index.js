@@ -68,6 +68,8 @@ class _Cookie {
         if (attrs.path) header += '; path=' + attrs.path;
         if (attrs.secure) header += '; secure';
         if (attrs.httponly) header += '; httponly';
+
+        return header;
     }
 }
 
