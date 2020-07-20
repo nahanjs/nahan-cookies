@@ -23,7 +23,7 @@ class _Cookies {
         this.res.setHeader('Set-Cookie', this.headers);
     }
 
-    get(key) {
+    get(name) {
         if (this.parsed === undefined) {
             this.parsed = {};
 
@@ -33,33 +33,33 @@ class _Cookies {
                 const cookies = header.split(';');
                 for (const cookie of cookies) {
                     const pos = cookie.indexOf('=');
-                    const key = cookie.slice(0, pos);
-                    const val = cookie.slice(pos + 1);
+                    const name = cookie.slice(0, pos);
+                    const value = cookie.slice(pos + 1);
 
-                    this.parsed[key] = val;
+                    this.parsed[name] = value;
                 }
             }
         }
 
-        return this.parsed[key];
+        return this.parsed[name];
     }
 
-    set(key, val, attrs = default_attrs) {
+    set(name, value, attrs = default_attrs) {
         if (this.res.headersSent)
             throw new Error();
-        this.headers.push(new _Cookie(key, val, attrs));
+        this.headers.push(new _Cookie(name, value, attrs));
     }
 }
 
 class _Cookie {
-    constructor(key, val, attrs = default_attrs) {
-        this.key = key;
-        this.val = val;
+    constructor(name, value, attrs = default_attrs) {
+        this.name = name;
+        this.value = value;
         this.attrs = attrs;
     }
 
     toString() {
-        let header = this.key + '=' + this.val;
+        let header = this.name + '=' + this.value;
 
         const attrs = this.attrs;
         if (attrs.expires) header += '; expires=' + attrs.expires;
