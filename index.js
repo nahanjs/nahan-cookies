@@ -1,21 +1,23 @@
 'use strict';
+const crypto=require('crypto');
 
 module.exports = Cookies;
 
-function Cookies() {
+function Cookies(secret) {
 
     return async (ctx, next) => {
         if (ctx.cookies === undefined)
-            ctx.cookies = new _Cookies(ctx.req, ctx.res);
+            ctx.cookies = new _Cookies(ctx.req, ctx.res, secret);
 
         await next();
     };
 }
 
 class _Cookies {
-    constructor(req, res) {
+    constructor(req, res, secret) {
         this.req = req;
         this.res = res;
+        this.secret = secret;
 
         this.parsed = undefined;
 
@@ -33,8 +35,8 @@ class _Cookies {
                 const cookies = header.split(';');
                 for (const cookie of cookies) {
                     const pos = cookie.indexOf('=');
-                    const name = cookie.slice(0, pos);
-                    const value = cookie.slice(pos + 1);
+                    const name = cookie[0] === ' ' ? cookie.slice(1, pos) : cookie.slice(0, pos);
+                    const value = signedCookie(cookie.slice(pos + 1), this.secret);
 
                     this.parsed[name] = value;
                 }
@@ -47,8 +49,15 @@ class _Cookies {
     set(name, value, attrs = default_attrs) {
         if (this.res.headersSent)
             throw new Error();
+        
+        if (attrs.signed){
+            const hmac = crypto.createHmac('sha256', this.secret).update(value).digest('base64').replace(/\=+$/, '');
+            value = 's:' + value + '.' + hmac;
+        }
+
         this.headers.push(new _Cookie(name, value, attrs));
     }
+
 }
 
 class _Cookie {
@@ -68,6 +77,7 @@ class _Cookie {
         if (attrs.path) header += '; path=' + attrs.path;
         if (attrs.secure) header += '; secure';
         if (attrs.httponly) header += '; httponly';
+        if (attrs.signeg) header += '; signed';
 
         return header;
     }
@@ -76,5 +86,23 @@ class _Cookie {
 var default_attrs = {
     expires: undefined, max_age: undefined,
     domain: undefined, path: undefined,
-    secure: false, httponly: false,
+    secure: false, httponly: false, signed: false,
 };
+
+function signedCookie(str, secret) {
+    if (str.substr(0, 2) !== 's:') {
+        return str;
+    }
+    
+    const hmac = crypto.createHmac('sha256', secret).update(str.slice(2, str.lastIndexOf('.'))).digest('base64').replace(/\=+$/, '');
+    const signature = str.slice(str.lastIndexOf('.')+1);
+    const val = hmac == signature ? str.slice(2, str.lastIndexOf('.')) : false;
+
+    if (val !== false) {
+        return val;
+    }
+
+    console.log('Signature error');
+
+    return false;
+}
