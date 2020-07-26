@@ -1,5 +1,5 @@
 'use strict';
-const crypto=require('crypto');
+const crypto = require('crypto');
 
 module.exports = Cookies;
 
@@ -7,22 +7,27 @@ function Cookies(secret) {
 
     return async (ctx, next) => {
         if (ctx.cookies === undefined)
-            ctx.cookies = new _Cookies(ctx.req, ctx.res, secret);
+            ctx.cookies = new _Cookies(ctx, secret);
 
         await next();
     };
 }
 
 class _Cookies {
-    constructor(req, res, secret) {
-        this.req = req;
-        this.res = res;
+    constructor(ctx, secret) {
+        this.req = ctx.req;
+        this.res = ctx.res;
         this.secret = secret;
 
         this.parsed = undefined;
 
-        this.headers = [];
-        this.res.setHeader('Set-Cookie', this.headers);
+        if (ctx.session_cookies) {
+            this.headers = ctx.session_cookies.headers;
+        }
+        else {
+            this.headers = [];
+            this.res.setHeader('Set-Cookie', this.headers);
+        }
     }
 
     get(name) {
@@ -49,8 +54,11 @@ class _Cookies {
     set(name, value, attrs = default_attrs) {
         if (this.res.headersSent)
             throw new Error();
-        
-        if (attrs.signed){
+
+        name = name || 'key';
+        value = value || 'value';
+
+        if (attrs.signed) {
             const hmac = crypto.createHmac('sha256', this.secret).update(value).digest('base64').replace(/\=+$/, '');
             value = 's:' + value + '.' + hmac;
         }
@@ -83,7 +91,7 @@ class _Cookie {
     }
 }
 
-var default_attrs = {
+const default_attrs = {
     expires: undefined, max_age: undefined,
     domain: undefined, path: undefined,
     secure: false, httponly: false, signed: false,
@@ -93,16 +101,16 @@ function signedCookie(str, secret) {
     if (str.substr(0, 2) !== 's:') {
         return str;
     }
-    
+
     const hmac = crypto.createHmac('sha256', secret).update(str.slice(2, str.lastIndexOf('.'))).digest('base64').replace(/\=+$/, '');
-    const signature = str.slice(str.lastIndexOf('.')+1);
+    const signature = str.slice(str.lastIndexOf('.') + 1);
     const val = hmac == signature ? str.slice(2, str.lastIndexOf('.')) : false;
 
     if (val !== false) {
         return val;
     }
-
-    console.log('Signature error');
-
-    return false;
+    else {
+        console.log('Signature error');
+        return false;
+    }
 }
