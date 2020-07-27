@@ -61,17 +61,17 @@ class _Cookies {
     }
 }
 
-const default_attrs = {
-    expires: undefined, max_age: undefined,
-    domain: undefined, path: undefined,
-    secure: false, httponly: false,
-};
-
 class _Cookie {
-    constructor(name, value, attrs = default_attrs) {
+    constructor(name, value, attrs) {
         this.name = name;
         this.value = value;
-        this.attrs = attrs;
+        this.attrs = {
+            expires: undefined, max_age: undefined,
+            domain: undefined, path: undefined,
+            secure: false, httponly: false,
+        };
+        for (let [key, value] of Object.entries(attrs))
+            this.attrs[key] = value;
     }
 
     toString() {
