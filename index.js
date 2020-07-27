@@ -50,7 +50,7 @@ class _Cookies {
         return this.parsed[name];
     }
 
-    set(name, value, attrs = default_attrs) {
+    set(name, value, attrs) {
         if (this.res.headersSent)
             throw new Error();
 
@@ -62,7 +62,7 @@ class _Cookies {
 }
 
 class _Cookie {
-    constructor(name, value, attrs) {
+    constructor(name, value, attrs = {}) {
         this.name = name;
         this.value = value;
         this.attrs = {
