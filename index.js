@@ -1,4 +1,5 @@
 'use strict';
+
 const crypto = require('crypto');
 
 module.exports = Cookies;
@@ -7,27 +8,22 @@ function Cookies(secret) {
 
     return async (ctx, next) => {
         if (ctx.cookies === undefined)
-            ctx.cookies = new _Cookies(ctx, secret);
+            ctx.cookies = new _Cookies(ctx.req, ctx.res, secret);
 
         await next();
     };
 }
 
 class _Cookies {
-    constructor(ctx, secret) {
-        this.req = ctx.req;
-        this.res = ctx.res;
+    constructor(req, res, secret) {
+        this.req = req;
+        this.res = res;
         this.secret = secret;
 
         this.parsed = undefined;
 
-        if (ctx.session_cookies) {
-            this.headers = ctx.session_cookies.headers;
-        }
-        else {
-            this.headers = [];
-            this.res.setHeader('Set-Cookie', this.headers);
-        }
+        this.headers = [];
+        this.res.setHeader('Set-Cookie', this.headers);
     }
 
     get(name) {
@@ -37,13 +33,16 @@ class _Cookies {
             const header = this.req.headers['cookie'];
             if (header !== undefined) {
 
-                const cookies = header.split(';');
+                const cookies = header.split('; ');
                 for (const cookie of cookies) {
                     const pos = cookie.indexOf('=');
-                    const name = cookie[0] === ' ' ? cookie.slice(1, pos) : cookie.slice(0, pos);
-                    const value = signedCookie(cookie.slice(pos + 1), this.secret);
+                    const name = cookie.slice(0, pos);
 
-                    this.parsed[name] = value;
+                    let value = cookie.slice(pos + 1);
+                    if (this.secret)
+                        value = unsignCookie(value, this.secret);
+                    if (value !== false)
+                        this.parsed[name] = value;
                 }
             }
         }
@@ -55,18 +54,18 @@ class _Cookies {
         if (this.res.headersSent)
             throw new Error();
 
-        name = name || 'key';
-        value = value || 'value';
-
-        if (attrs.signed) {
-            const hmac = crypto.createHmac('sha256', this.secret).update(value).digest('base64').replace(/\=+$/, '');
-            value = 's:' + value + '.' + hmac;
-        }
+        if (this.secret)
+            value = signCookie(value, this.secret);
 
         this.headers.push(new _Cookie(name, value, attrs));
     }
-
 }
+
+const default_attrs = {
+    expires: undefined, max_age: undefined,
+    domain: undefined, path: undefined,
+    secure: false, httponly: false,
+};
 
 class _Cookie {
     constructor(name, value, attrs = default_attrs) {
@@ -85,32 +84,30 @@ class _Cookie {
         if (attrs.path) header += '; path=' + attrs.path;
         if (attrs.secure) header += '; secure';
         if (attrs.httponly) header += '; httponly';
-        if (attrs.signeg) header += '; signed';
 
         return header;
     }
 }
 
-const default_attrs = {
-    expires: undefined, max_age: undefined,
-    domain: undefined, path: undefined,
-    secure: false, httponly: false, signed: false,
-};
+function sign(value, secret) {
+    return crypto.createHmac('sha256', secret).update(value).digest('base64').replace(/\=+$/, '');
+}
 
-function signedCookie(str, secret) {
-    if (str.substr(0, 2) !== 's:') {
-        return str;
-    }
+function signCookie(value, secret) {
+    return value + '|' + sign(value, secret);
+}
 
-    const hmac = crypto.createHmac('sha256', secret).update(str.slice(2, str.lastIndexOf('.'))).digest('base64').replace(/\=+$/, '');
-    const signature = str.slice(str.lastIndexOf('.') + 1);
-    const val = hmac == signature ? str.slice(2, str.lastIndexOf('.')) : false;
+function unsignCookie(signedValue, secret) {
 
-    if (val !== false) {
-        return val;
-    }
-    else {
-        console.log('Signature error');
+    const pos = signedValue.lastIndexOf('|');
+    if (pos === -1)
         return false;
-    }
+
+    const value = signedValue.slice(0, pos);
+    const signature = signedValue.slice(pos + 1);
+
+    if (sign(value) !== signature)
+        return false;
+
+    return value;
 }
