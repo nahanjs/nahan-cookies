@@ -1,6 +1,6 @@
 {
   "name": "nahan-cookies",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Cookies middleware for nahan",
   "main": "index.js",
   "scripts": {

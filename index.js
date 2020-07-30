@@ -56,7 +56,6 @@ class _Cookies {
 
         if (this.secret)
             value = signCookie(value, this.secret);
-
         this.headers.push(new _Cookie(name, value, attrs));
     }
 }
@@ -90,7 +89,8 @@ class _Cookie {
 }
 
 function sign(value, secret) {
-    return crypto.createHmac('sha256', secret).update(value).digest('base64').replace(/\=+$/, '');
+    if (value !== undefined)
+        return crypto.createHmac('sha256', secret).update(value).digest('base64').replace(/\=+$/, '');
 }
 
 function signCookie(value, secret) {
@@ -106,7 +106,7 @@ function unsignCookie(signedValue, secret) {
     const value = signedValue.slice(0, pos);
     const signature = signedValue.slice(pos + 1);
 
-    if (sign(value) !== signature)
+    if (sign(value, secret) !== signature)
         return false;
 
     return value;
