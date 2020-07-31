@@ -89,8 +89,7 @@ class _Cookie {
 }
 
 function sign(value, secret) {
-    if (value !== undefined)
-        return crypto.createHmac('sha256', secret).update(value).digest('base64').replace(/\=+$/, '');
+    return crypto.createHmac('sha256', secret).update(value).digest('base64').replace(/\=+$/, '');
 }
 
 function signCookie(value, secret) {

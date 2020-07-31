@@ -10,6 +10,11 @@ Cookies middleware for nahan
 [coveralls-image]: https://coveralls.io/repos/github/LabMemNo003/nahan-cookies/badge.svg?branch=master
 [coveralls-url]: https://coveralls.io/github/LabMemNo003/nahan-cookies?branch=master
 
+# Note
+
+- When initializing, set the parameter secret to sign and encrypt the cookie.
+- Name and value must be specified when setting cookies.
+
 ## Reference
 
 https://tools.ietf.org/html/rfc6265
